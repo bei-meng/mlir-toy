@@ -43,12 +43,12 @@ def SubOp:ToyOp<"sub",[Pure,SameOperandsAndResultType]>{
     let results = (outs AnyInteger:$result);
 
     // 不建议自动写结果类型推断
-    let builders = [
-        OpBuilder<
-            (ins "mlir::Value":$lhs, "mlir::Value":$rhs),
-            "build($_builder,$_state,lhs.getType(),lhs,rhs);"
-        >
-    ];
+    // let builders = [
+    //     OpBuilder<
+    //         (ins "mlir::Value":$lhs, "mlir::Value":$rhs),
+    //         "build($_builder,$_state,lhs.getType(),lhs,rhs);"
+    //     >
+    // ];
 
     // verifer 发现IR的错误
     let hasVerifier = true;
@@ -56,7 +56,7 @@ def SubOp:ToyOp<"sub",[Pure,SameOperandsAndResultType]>{
 }
 
 
-def ConstantOp : ToyOp<"const", [Pure]> {
+def ConstantOp : ToyOp<"const", [Pure,InferTypeOpAdaptor]> {
     let summary = "const operation";
     // `arguments` 定义操作的所有输入项，既包含**运行时操作数（Operand）**，
     // 也包含**编译期属性（Attribute）**，用 `ins` 包裹
@@ -67,6 +67,8 @@ def ConstantOp : ToyOp<"const", [Pure]> {
     let extraClassDeclaration = [{
         int64_t getBitWidth();
     }];
+
+    let assemblyFormat = "$value attr-dict";
 }
 
 // 另一种实现
@@ -95,10 +97,12 @@ def ConstantOp : ToyOp<"const", [Pure]> {
 // 标记该操作是**基本块（Block）的结尾指令**
 // **`ReturnLike`（返回类 Trait）**include "mlir/Interfaces/ControlFlowInterfaces.td"
 // 标记该操作是**函数返回操作**，语义上代表函数执行结束，将控制流和返回值交还给调用方。
-def ReturnOp :ToyOp<"return", [Terminator]>{
+// returnLike Trait 继承了 Terminator Trait，意味着 ReturnLike 操作也是 Terminator 操作的一种特殊情况。
+def ReturnOp :ToyOp<"ret", [Terminator, ReturnLike]>{
     let summary = "return operation";
     // ODS 的可选包装器，表示这个操作数**可以有，也可以没有**
     let arguments = (ins Optional<AnyInteger>:$data);
+    let assemblyFormat = "($data `:` type($data)^)? attr-dict";
 }
 
 
@@ -118,5 +122,51 @@ def HWRegOp :ToyOp<"reg">{
         (`reset` $reset^)?
         attr-dict `:` functional-type($input, results)
     }];
+}
+
+
+
+def FuncOp:ToyOp<"func", [
+    IsolatedFromAbove,
+    FunctionOpInterface,
+    /* Symbol, */ /* Symbol 会自动被 FunctionOpInterface 加上 */
+    /* CallableOpInterface, */ /* CallOpInterface 会自动被 FunctionOpInterface 加上 */
+    RegionKindInterface
+]>{
+    let summary = "function operation";
+    let arguments = (ins 
+        SymbolNameAttr:$sym_name,
+        TypeAttrOf<FunctionType>:$function_type,
+        // FunctionOpInterface 需要两个 Attr 来记录 arg 和 res 的名字
+        OptionalAttr<DictArrayAttr>:$arg_attrs,
+        OptionalAttr<DictArrayAttr>:$res_attrs
+    );
+
+    dag regions = (region AnyRegion:$body);
+    let hasCustomAssemblyFormat = true;
+    let extraClassDeclaration = [{
+        // Method of FunctionOpInterface
+        mlir::Region * getCallableRegion() {return &getBody();}
+        // getFunctionType 函数会自动生成
+        // mlir::FunctionType getFunctionType(); 
+
+        // Method of CallableOpInterface
+        llvm::ArrayRef<mlir::Type> getArgumentTypes() {return getFunctionType().getInputs();}
+        llvm::ArrayRef<mlir::Type> getResultTypes() {return getFunctionType().getResults();}
+
+        // Method of RegionKindInterface
+        static mlir::RegionKind getRegionKind(unsigned idx) { return mlir::RegionKind::SSACFG; }
+    }];
+}
+
+def CallOp : ToyOp<"call", [CallOpInterface]> {
+  let summary = "call operation";
+  let arguments = (ins SymbolRefAttr:$callee, Variadic<AnyType>:$arg_operands);
+  let results = (outs AnyType:$result);
+  let assemblyFormat = "$callee `(` $arg_operands `)` attr-dict `:` functional-type($arg_operands, results)";
+  let extraClassDeclaration = [{
+    mlir::CallInterfaceCallable getCallableForCallee() { return getCalleeAttr(); }
+    void setCalleeFromCallable(mlir::CallInterfaceCallable callee) { setCalleeAttr(callee.get<mlir::SymbolRefAttr>()); }
+  }];
 }
 #endif

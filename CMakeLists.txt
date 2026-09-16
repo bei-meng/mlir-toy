@@ -52,4 +52,6 @@ include_directories(${LLVM_INCLUDE_DIRS} ${MLIR_INCLUDE_DIRS})
 
 # add_subdirectory(ex3-dialect) 
 
-add_subdirectory(ex4-beautiful-dialect) 
+# add_subdirectory(ex4-beautiful-dialect) 
+
+add_subdirectory(ex5-pass) 

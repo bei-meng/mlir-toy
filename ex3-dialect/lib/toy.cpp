@@ -12,3 +12,11 @@ void ToyDialect::initialize(){
     #include "toy/Toy.cpp.inc"
     >();
 }
+
+mlir::LogicalResult SubOp::verify(){
+    if(getLhs().getType()!=getRhs().getType()){
+        return this->emitOpError()<<"Lhs Type" << getLhs().getType() 
+        << "is not equal to Rhs Type" << getRhs().getType();
+    }
+    return mlir::success();
+}
