@@ -7,10 +7,17 @@ add_public_tablegen_target(MLIRToyTransformsIncGen)
 
 # 编译变换静态库
 add_mlir_library(MLIRToyTransforms
-  toypass.cpp
+  ConvertToyToArith.cpp
+  DCE.cpp
   DEPENDS
   MLIRToyIncGen
   MLIRToyTransformsIncGen
   LINK_LIBS PUBLIC
   MLIRToyDialect
 )
+
+target_include_directories(MLIRToyTransforms
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+)
+

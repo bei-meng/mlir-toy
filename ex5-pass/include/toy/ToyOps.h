@@ -2,6 +2,13 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+// 必须在 .h.inc 之前包含
+#include "mlir/IR/OpDefinition.h"          // mlir::Op 基类
+#include "mlir/Interfaces/CallInterfaces.h" // CallOpInterface、CallInterfaceCallable
+#include "mlir/Interfaces/FunctionInterfaces.h" // FunctionOpInterface
+#include "mlir/Interfaces/InferTypeOpInterface.h" // InferTypeOpInterface
+#include "mlir/Interfaces/ControlFlowInterfaces.h" // RegionBranchTerminatorOpInterface
+#include "mlir/Interfaces/SideEffectInterfaces.h" // MemoryEffectOpInterface
 
 
 // td里面include,这里也要include对应的h文件
