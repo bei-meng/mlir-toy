@@ -57,4 +57,5 @@ include_directories(${LLVM_INCLUDE_DIRS} ${MLIR_INCLUDE_DIRS})
 # add_subdirectory(ex5-pass) 
 
 # add_subdirectory(ex6-pattern) 
-add_subdirectory(ex7-convert) 
+# add_subdirectory(ex7-convert) 
+add_subdirectory(ex8-matmul) 
